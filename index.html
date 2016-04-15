@@ -1,171 +1,144 @@
 <!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Wikipedia Document Classification by ElvenGrace</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Wikipedia Document Classification</h1>
+      <h2 class="project-tagline">A review on popular Text Classification Methods</h2>
+      <a href="https://github.com/ElvenGrace/IREMajorProjectDocClassification" class="btn">View on GitHub</a>
+      <a href="https://github.com/ElvenGrace/IREMajorProjectDocClassification/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/ElvenGrace/IREMajorProjectDocClassification/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
 
-    <title>Wikipedia Document Classification</title>
+    <section class="main-content">
+      <h3>
+<a id="aim" class="anchor" href="#aim" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Aim</h3>
 
-    <!-- Bootstrap Core CSS -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
+<p>Given a Wikipedia Document our aim is to say the Categories it may belong to, based on a Training data in which each Document is tagged to multiple Categories,  The Categories we considered are the following: 
+Wiki
+Art
+Reference
+People
+Culture
+Books
+Design
+Politics
+Technology
+Psychology
+Interesting
+Wikipedia
+Research
+Religion
+Music
+Math
+Development
+Theory
+Philosophy
+Article
+Language
+Science
+Programming
+History
+Software</p>
 
-    <!-- Custom CSS -->
-    <link href="css/blog-post.css" rel="stylesheet">
+<h3>
+<a id="dataset" class="anchor" href="#dataset" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dataset</h3>
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+<p>We used Wiki10+ data set from following link:
+---<a href="http://nlp.uned.es/social-tagging/wiki10+/">http://nlp.uned.es/social-tagging/wiki10+/</a>
+The data set contains following two files:
+wiki10+_tag-data.tar.gz  (3,6 MB): Contains all the tag data for the Wikipedia articles.
+wiki10+_documents.tar.bz2  (271 MB): Content for all the Wikipedia articles on the dataset in HTML format. We extracted the text from HTML to run different experiments.
+As we only consider top 25 documents, we removed those documents who don't have even one of these top 25 categories
+This dataset is made up by 20,764 unique URLs, all of them with their corresponding social tags. All of them are English Wikipedia articles with at least 10 annotations on Delicious. Therefore, the tag information for each of these Wikipedia articles as well as the text content can be found in this dataset.</p>
 
-</head>
+<h4>
+<a id="approach-1--lda-or-latent-dirichlet-allocation" class="anchor" href="#approach-1--lda-or-latent-dirichlet-allocation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Approach 1:  LDA or Latent Dirichlet Allocation</h4>
 
-<body>
+<p>We can use LDA to classify documents in different tags. We know that LDA divides the given corpus in fixed no. of topics and can also provide which topics are contained in a document and with what probability. For the experiments performed  using LDA, we don’t need to worry about internal implementation of LDA. We used gensim’s implementation of LDA. To use the library, we just need to know few points about input and output format.
+During Learning phase
+INPUT:
+We provide all the wiki documents in single XML file zipped in bz2 format.
+LEARNT MODEL:
+Word distribution for each topic eg: “topic #0: 0.009<em>river + 0.008</em>lake + 0.006<em>island + 0.005</em>mountain + 
+0.004<em>area + 0.004</em>park + 0.004<em>antarctic + 0.004</em>south + 0.004<em>mountains + 0.004</em>dam”
+During Testing phase
+INPUT:
+We provide the document to be classified in bag of words form to the learnt model</p>
 
-   
+<p>OUTPUT:
+Topic distribution for a the text eg: “[(34, 0.023705742561150572), (60, 0.017830310671555303), (62, 0.023999239610385081), (83,0.029439444128473557), (87, 0.028172479800878891), (90, 0.1207424163376625), (116,0.022904510579689157)]”  represents the probabilities of the doc to fall under topics like 34,60,62….</p>
 
-    <!-- Page Content -->
-    <div class="container">
+<p>Major challenge in classification: 
+It seems to be fairly simple to classify a document in different topics as we can see in output of testing phase. But  our aim is to classify the document under different tags like “politics, science” etc. and not under topic numbers. 
+Possible Solutions
+Clearly we need some way to map all the topics learnt by LDA to the most suitable tags. If we are able to do this then we simply test the unknown text against the model learnt by LDA and then report the tag corresponding to the topic given by LDA in output. We tried two different solutions to map topics to the tags:
+As each topic of LDA is represented by distribution of words. We can create a query by combining those words and find best matched document on tf-idf basis for that query. That particular document must be the best match for that topic. So we can map the topic to tag of best matched document.
+We can find probability distribution of topics for all the documents. Represent each document as a topic vector. Now find the closest document or the most similar document for each topic. Map the topic to the tag of that particular document.</p>
 
-        <div class="row">
+<p>Approach 1
+We can specify the major steps of to implement this approach as follows:
+Divide the documents in training and test data with 4000 docs in test data.
+On training data run gensim's LDA and save the learnt model. Set the number of topics as 300.
+Save all the topics in a file and convert them to queries.
+         Example topic:
+2016-04-06 00:05:52,466 : INFO : topic #299 (0.003): 0.014<em>insurance + 0.009</em>scott + 0.007<em>samurai + 0.007</em>hipster + 0.006<em>forecasting + 0.006</em>fbi + 0.006<em>imf +    0.005</em>skeptical + 0.005<em>bass + 0.005</em>hidden
+           Query corresponding to above topic  #299:
+     299:insurance scott samurai hipster forecasting fbi imf skeptical bass hidden
+        4.   For each query, retrieve the most relevant document in training set on tf-idf basis and create topic to doc Id mapping.
+         Example:
+                 299 : cae3757420fbc4008bbfe492ab0d4cb5
+      5.   Create a topic to tag mapping using the docId to tag mapping (already available in tagData.xml) and doc ID to topic mapping created in above step.
+         Example docId to tag from tagData.xml:
+         cae3757420fbc4008bbfe492ab0d4cb5 : ['wiki', 'en', 'wikipedia,', 'activism', '-‘, 'political', 'poetry', 'free','person', 'music', 'encyclopedia', 'the', 'biography', 'history']
+         Example topic to docId:
+         299:cae3757420fbc4008bbfe492ab0d4cb5
+         Example topic to tag:
+         299:['wiki', 'en', 'wikipedia,', 'activism', '-', 'political', 'poetry', 'free', 'person', 'music‘, 'encyclopedia', 'the','biography', 'history']
+         Now each topic is mapped to multiple tags.
+6.   For each of the test documents (from 4000 docs in test data), find out the relevant topics using learnt LDA model. Combine the tags corresponding to them and match them against already available target tags (from tagData.xml) for that particular document.
+         If even one tag is matched, we say that document is correctly classified.
+Example:
+Topic distribution returned by LDA for a particular doc:
+[(34, 0.023705742561150572), (60, 0.017830310671555303), (62, 0.023999239610385081), (83,0.029439444128473557), (87, 0.028172479800878891), (90, 0.1207424163376625), (116,0.022904510579689157), (149, 0.010136256627631658), (155,0.045428499528247894), (162,0.014294122339773195), (192, 0.01315170635603234), (193, 0.055764500858303222), (206,0.015174121956574787), (240, 0.052498569359746373), (243,0.016285345117555323), (247,0.019478047862044864), (255, 0.018193391082926114), (263,0.030209722561452931), (287,0.042405659613804568), (289, 0.055528896333028231),(291,0.030064093091433357)]</p>
 
-            <!-- Blog Post Content Column -->
-            <div class="col-lg-8">
+<p>Tags combined for above topics (from topic to tag mapping created in above step):
+['money', 'brain', 'web', 'thinking', 'interesting', 'environment', 'teaching', 'web2.0', 'bio', 'finance', 'government', 'food', 'howto', 'geek', 'cool', 'articles', 'school', 'cognitive', 'cognition', 'energy', 'computerscience', '2read', 'culture', 'computer', 'video', 'home', 'todo', 'investment', 'depression', 'psychology', 'wikipedia', 'research', 'health', 'internet', 'medicine', 'electronics', 'tech', 'math', 'business', 'marketing', 'free', 'standard', 'interface', 'article', 'definition', 'anarchism', 'of', 'study', 'economics', 'programming', 'american', 'games', 'advertising', 'social', 'software', 'apple', 'coding', 'maths', 'learning', 'management', 'system', 'quiz', 'pc', 'music', 'memory', 'war', 'nutrition', 'comparison', 'india', 'info', 'science', 'dev', '<a href="https://github.com/wikipedia" class="user-mention">@wikipedia</a>', 'future', 'behavior', 'design', 'history', '<a href="https://github.com/read" class="user-mention">@read</a>', 'mind', 'hardware', 'webdev', 'politics', 'technology‘]
+Target tags for this particular doc from tagData.xml:
+['reference', 'economics', 'wikipedia', 'politics', 'reading', 'resources']</p>
 
-                <!-- Blog Post -->
+<p>Accuracy from this approach: 97% </p>
 
-                <!-- Title -->
-                <h1>Wikipedia Document Classification</h1>
+<p>Problem with this approach:
+If there is any match between our found tags and true tags, then we call it as correctly classified. Probability of such scenario is very high as we have multiple found tags and multiple true tags. So even if we are doing something wrong, chances of getting good accuracy is very high.
+As we are doing tf-idf based matching then there is high chance that the document we get on top is not best match for that particular topic. It can also happen because we are not considering all the representative words of a particular topic to frame the query, we just considered top 10.</p>
 
-                <!-- Author -->
-                <p class="lead">
-                    by <a href="#">Mohit Sharma, Vijjini Anvesh Rao, T.V.Ravi Teja</a>
-                </p>
+<h3>
+<a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Authors and Contributors</h3>
 
-                <hr>
+<p>You can <a href="https://help.github.com/articles/basic-writing-and-formatting-syntax/#mentioning-users-and-teams" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor’s GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
 
-                <hr>
+<h3>
+<a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support or Contact</h3>
 
+<p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
 
-                <hr>
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/ElvenGrace/IREMajorProjectDocClassification">Wikipedia Document Classification</a> is maintained by <a href="https://github.com/ElvenGrace">ElvenGrace</a>.</span>
 
-                <!-- Post Content -->
-                <p class="lead"> Aim </p>
-                <p>Given a Wikipedia Document our aim is to say the Categories it may belong to, based on a Training data in which each Document is tagged to multiple Categories,  The Categories we considered are the following: </p>
-                    <b>Wiki</b><br/>
-                   <b> Art</b><br/>
-                    <b>Reference</b><br/>
-                   <b> People</b><br/>
-                   <b> Culture</b><br/>
-                   <b> Books</b><br/>
-                   <b> Design</b><br/>
-                   <b> Politics</b><br/>
-                   <b> Technology</b><br/>
-                    <b>Psychology</b><br/>
-                    <b>Interesting</b><br/>
-                    <b>Wikipedia</b><br/>
-                    <b>Research</b><br/>
-                    <b>Religion</b><br/>
-                    <b>Music</b><br/>
-                    <b>Math</b><br/>
-                    <b>Development</b><br/>
-                    <b>Theory</b><br/>
-                    <b>Philosophy</b><br/>
-                   <b> Article</b><br/>
-                    <b>Language</b><br/>
-                    <b>Science</b><br/>
-                    <b>Programming</b><br/>
-                    <b>History</b><br/>
-                    <b>Software</b><br/></br>
-                <p class="lead"> Dataset </p>
-                <p>We used Wiki10+ data set from following link:</br>
-                    <a href="http://nlp.uned.es/social-tagging/wiki10+/">http://nlp.uned.es/social-tagging/wiki10+/</a></br></br>
-                The data set contains following two files:</br>
-                1) wiki10+_tag-data.tar.gz  (3,6 MB): Contains all the tag data for the Wikipedia articles.</br>
-                2) wiki10+_documents.tar.bz2  (271 MB): Content for all the Wikipedia articles on the dataset in HTML format. We extracted the text from HTML to run different experiments.</br></br>
-                As we only consider top 25 documents, we removed those documents who don't have even one of these top 25 categories</br>
-                This dataset is made up by 20,764 unique URLs, all of them with their corresponding social tags. All of them are English Wikipedia articles with at least 10 annotations on Delicious. Therefore, the tag information for each of these Wikipedia articles as well as the text content can be found in this dataset.</br></br></p>
-                <p class="lead"> Approach 1:  LDA or Latent Dirichlet Allocation </p>
-                <p>We can use LDA to classify documents in different tags. We know that LDA divides the given corpus in fixed no. of topics and can also provide which topics are contained in a document and with what probability. For the experiments performed  using LDA, we don’t need to worry about internal implementation of LDA. We used gensim’s implementation of LDA. To use the library, we just need to know few points about input and output format.</p>
-                </br>
-                <b> During Learning phase</b></br></br>
-                <b>INPUT:</b>
-                </br><p>We provide all the wiki documents in single XML file zipped in bz2 format.</p>
-                 <b>LEARNT MODEL:</b>
-                </br><p>Word distribution for each topic eg: “topic #0: 0.009*river + 0.008*lake + 0.006*island + 0.005*mountain + 
-                0.004*area + 0.004*park + 0.004*antarctic + 0.004*south + 0.004*mountains + 0.004*dam”</p>
-                 <b> During Testing phase</b></br></br>
-                  <b>INPUT:</b>
-                </br><p>We provide the document to be classified in bag of words form to the learnt model</p>
-                <b>OUTPUT:</b>
-                </br><p>Topic distribution for a the text eg: “[(34, 0.023705742561150572), (60, 0.017830310671555303), (62, 0.023999239610385081), (83,0.029439444128473557), (87, 0.028172479800878891), (90, 0.1207424163376625), (116,0.022904510579689157)]”  represents the probabilities of the doc to fall under topics like 34,60,62….</p></br>
-           
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
 
+    </section>
 
-                <p class="lead"> Major challenge in classification:  </p>
-                <p>It seems to be fairly simple to classify a document in different topics as we can see in output of testing phase. But  our aim is to classify the document under different tags like “politics, science” etc. and not under topic numbers. </p>
-                 <p class="lead"> Possible Solutions: </p>
-                <p>Clearly we need some way to map all the topics learnt by LDA to the most suitable tags. If we are able to do this then we simply test the unknown text against the model learnt by LDA and then report the tag corresponding to the topic given by LDA in output. We tried two different solutions to map topics to the tags: </p>
-                <p>1). As each topic of LDA is represented by distribution of words. We can create a query by combining those words and find best matched document on tf-idf basis for that query. That particular document must be the best match for that topic. So we can map the topic to tag of best matched document.</p>
-                <p>2) We can find probability distribution of topics for all the documents. Represent each document as a topic vector. Now find the closest document or the most similar document for each topic. Map the topic to the tag of that particular document.</p>
-
-                <b>Approach 1: </b><br>
-                <p>We can specify the major steps of to implement this approach as follows:</p>
-                <p>1) Divide the documents in training and test data with 4000 docs in test data.</p>
-                <p>2) On training data run gensim's LDA and save the learnt model. Set the number of topics as 300.</p>
-                <p>3) Save all the topics in a file and convert them to queries.</p>
-                <b>  Example topic:</b><br>
-                <p>2016-04-06 00:05:52,466 : INFO : topic #299 (0.003): 0.014*insurance + 0.009*scott + 0.007*samurai + 0.007*hipster + 0.006*forecasting + 0.006*fbi + 0.006*imf +     0.005*skeptical + 0.005*bass + 0.005*hidden</p>
-                <b>Query corresponding to above topic  #299:</b><br>
-                <p> 299:insurance scott samurai hipster forecasting fbi imf skeptical bass hidden</p>
-                <p>4) For each query, retrieve the most relevant document in training set on tf-idf basis and create topic to doc Id mapping.</p>
-                 <b>         Example:</b><br>
-                <p>   299 : cae3757420fbc4008bbfe492ab0d4cb5</p>
-
-                <hr>
-
-                <!-- Blog Comments -->
-
-                <!-- Comments Form -->
-                <hr>
-
-                <!-- Posted Comments -->
-
-               
-                
-
-            <!-- Blog Sidebar Widgets Column -->
-            
-        </div>
-        <!-- /.row -->
-
-        <hr>
-
-        <!-- Footer -->
-        <footer>
-            <div class="row">
-                <div class="col-lg-12">
-                    <p>Copyright &copy; Your Website 2016</p>
-                </div>
-            </div>
-            <!-- /.row -->
-        </footer>
-
-    </div>
-    <!-- /.container -->
-
-    <!-- jQuery -->
-    <script src="js/jquery.js"></script>
-
-    <!-- Bootstrap Core JavaScript -->
-    <script src="js/bootstrap.min.js"></script>
-
-</body>
-
+  
+  </body>
 </html>
